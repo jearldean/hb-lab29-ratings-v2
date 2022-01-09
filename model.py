@@ -30,9 +30,9 @@ class Movie(db.Model):
                         autoincrement=True,
                         primary_key=True)
     title = db.Column(db.String, nullable=False)
-    overview = db.Column(db.Text, nullable = False)  # overview will contain spaces so, db.Text
-    release_date = db.Column(db.DateTime)
-    poster_path = db.Column(db.String)
+    overview = db.Column(db.Text, nullable=False)  # overview will contain spaces so, db.Text
+    release_date = db.Column(db.DateTime, nullable=True)
+    poster_path = db.Column(db.String, nullable=True)
     # ratings = a list of Rating objects
 
     def __repr__(self):
@@ -78,13 +78,7 @@ Can one user rate multiple movies?
     Yes, they should be able to rate as many as they like
 How will you associate a rating with a certain user and movie?
     Maybe a ratings table and a movies table and a users table. JOIN
-
-
-
 """
-
-
-
 
 def connect_to_db(flask_app, db_uri="postgresql:///ratings", echo=True):
     flask_app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
