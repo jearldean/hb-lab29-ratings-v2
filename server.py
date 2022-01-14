@@ -12,6 +12,7 @@ app.secret_key = "dev"
 app.jinja_env.undefined = StrictUndefined
 
 
+
 @app.route("/")
 def homepage():
     """Display homepage."""
@@ -42,40 +43,53 @@ def login_user():
     password = request.form.get("password")
 
     if crud.does_the_password_match(email, password):
-        flash("Logged in! Please rate some movies!")
-
-        # Establish a session only after a successful login:
-        if "session_details" not in session:
-            session["session_details"] = {}
+        flash(f"Thanks for being a MoveeBuff™, {email}! Help us by rating some movies!")
 
         # Override on each new login:
-        session["session_details"]["user_email"] = email
-        # This failed when we didn't initialize the movie_id key:
-        session["session_details"]["movie_id"] = None
+        session["user_email"] = email
         
         return redirect("/movies")
     else:
         flash("Password mismatch! Please try again")
-        return redirect("/")
+        return redirect(request.referrer)
 
 
 @app.route("/rate", methods=["POST"])
 def rate_movie():
 
     rating = request.form.get("rating")  # Any form reply back is a string.
+
+    nope_msg = "Please try again with a number from 0-5."
     try:
         rating = int(rating)  # Coerce to int.
-    except TypeError:
-        flash("Please try again with a number from 1-5.")
+        if rating not in range(6):
+            flash(nope_msg)
+            return redirect(request.referrer)
+    except ValueError:
+        flash(nope_msg)
+        return redirect(request.referrer)
 
-    user_email = session["session_details"]["user_email"]
+    user_email = session["user_email"]
     user = crud.get_user_by_email(user_email)
-    movie = crud.get_movie_by_id(session["session_details"]["movie_id"])
+    movie = crud.get_movie_by_id(session["movie_id"])
 
-    crud.create_rating(user, movie, score=rating)
+    """ 3 things can happen here:
+    1. New rating -> add new rating
+    2. old_score is the same as new_score. No action, flash message.
+    3. Rating exists already and is new -> update.
+    """
+    if crud.does_this_rating_exist_already(user, movie):
+        old_score = crud.get_score_for_existing_rating(user, movie)
+        if old_score == rating:
+            flash(f"No change to your previous rating of {rating}.")
+        else:
+            flash(f"Updating your rating from {old_score} to {rating}.")
+            crud.update_rating(user, movie, new_score=rating)
+    else:
+        crud.create_rating(user, movie, score=rating)
+        flash(f"Thank you for your rating of {rating} for {movie.title}, {user_email}.")
 
-    flash("Rate more movies!")
-    return redirect("/movies")
+    return redirect(request.referrer)
 
     
 @app.route("/movies")
@@ -85,16 +99,28 @@ def all_movies():
 
     return render_template('all_movies.html', movies=movies)
 
+
 @app.route("/movies/<movie_id>")
 def one_movie(movie_id):
     """View one movie."""
 
+    movie_id = int(movie_id)
+
     movie = crud.get_movie_by_id(movie_id)
 
     # Put movie_id in session here: (override on each new page load)
-    session["session_details"]["movie_id"] = movie_id
+    session["movie_id"] = movie_id
 
-    return render_template('movie_details.html', movie=movie)
+    average_rating, count_scores = crud.get_movie_rating(movie)
+
+    user = crud.get_user_by_email(session["user_email"])
+    if crud.does_this_rating_exist_already(user, movie):
+        old_score = crud.get_score_for_existing_rating(user, movie)
+        flash(f"Your rating for {movie.title} is a {old_score}.")
+    else:
+        flash(f"You have not previously rated this movie.")
+
+    return render_template('movie_details.html', movie=movie, rating_average=average_rating, num_users=count_scores)
 
 
 @app.route("/users")
@@ -109,7 +135,6 @@ def one_user(user_id):
     """View one user."""
 
     user = crud.get_user_by_id(user_id)
-    print(f"I am user_id: {user_id}")
 
     return render_template('user_details.html', user=user)
 
@@ -117,6 +142,8 @@ def one_user(user_id):
 if __name__ == "__main__":
     connect_to_db(app)
     # DebugToolbarExtension(app)
+    app.jinja_env.auto_reload = True
+    app.config['TEMPLATES_AUTO_RELOAD'] = False
 
     app.run(host="0.0.0.0", debug=True)
 

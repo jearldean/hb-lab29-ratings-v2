@@ -28,6 +28,9 @@ If we had written from model import db, we'd be able to access db.  (on line 17)
 However, since it's just import model, you have to go through model before you can access db.
 """
 
+SEED_USERS = 20
+SEED_RATINGS = 20
+
 with open('data/movies.json') as f:
     movie_data = json.loads(f.read())
 """
@@ -90,16 +93,15 @@ definitely unique!). After creating the user, you'll need to generate 10 fake ra
 for that user.
 """
 
-for n in range(10):
+for n in range(SEED_USERS):
     email = f'user{n}@test.com'  # Voila! A unique email!
     password = 'test'
 
     one_user_instance = crud.create_user(email, password)
     model.db.session.add(one_user_instance)
     
-
     ratings_list = []
-    for z in range(10):
+    for z in range(SEED_RATINGS):
         one_random_movie_instance = choice(movies_in_db)
         one_rating_instance = crud.create_rating(
             one_user_instance, one_random_movie_instance, randint(0, 5))

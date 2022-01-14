@@ -2,7 +2,6 @@
 
 from model import db, User, Movie, Rating, connect_to_db
 
-
 def create_user(email, password):
     """Create and return a new user.
     
@@ -151,6 +150,34 @@ def get_movie_by_id(movie_id):
     
     return Movie.query.get(movie_id)
 
+def get_movie_rating(movie_instance):
+    """Return the average of all ratings for one movie."""
+    
+    ratings_objects = Rating.query.filter(Rating.movie == movie_instance)
+
+    # This is the stupid way until I can get the fancy way working:
+    # average_rating = Rating.query.with_entities(func.avg(Rating.score)).filter(Rating.movie == movie_instance)
+
+    total_scores = 0
+    count_scores = 0
+    for rating in ratings_objects:
+        total_scores += rating.score
+        count_scores += 1
+
+    if count_scores > 0:
+        average_rating = round(float(total_scores)/count_scores, 1)
+    else:
+        average_rating = 0.0
+
+    return average_rating, count_scores
+
+"""
+def update_movie_ratings():
+
+    for each_movie_instance in get_movies():
+        average_rating = get_movie_rating(each_movie_instance)
+# We can't do this without a schema change.
+"""
 
 def create_rating(user_instance, movie_instance, score: int):
     """Create and return a new rating.
@@ -196,13 +223,30 @@ def create_rating(user_instance, movie_instance, score: int):
 
     >>
     """
-
     rating = Rating(user = user_instance, movie = movie_instance, score = score)
+    db.session.add(rating)
+    db.session.commit()
 
     return rating
     
+def update_rating(user_instance, movie_instance, new_score: int):
+    db.session.query(Rating).filter(Rating.movie == movie_instance, Rating.user == user_instance).update({Rating.score: new_score})
+    db.session.commit()
+    return Rating(user = user_instance, movie = movie_instance, score = new_score)
+
+def get_score_for_existing_rating(user_instance, movie_instance):
+    score = Rating.query.filter(Rating.movie == movie_instance, Rating.user == user_instance).first().score
+    return score
+
+def does_this_rating_exist_already(user_instance, movie_instance):
+    """Return a boolean we can use for the if-statement in crud.create_rating()."""
+
+    if Rating.query.filter(Rating.movie == movie_instance, Rating.user == user_instance).first():
+        return True
+    else:
+        return False
+
 if __name__ == '__main__':
     """Will connect you to the database when you run crud.py interactively"""
     from server import app
     connect_to_db(app)
-

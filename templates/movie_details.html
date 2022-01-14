@@ -5,6 +5,8 @@
 {% block body %}
 <h1>{{ movie.title }}</h1>
 
+<p class="rating"> Average MoveeBuff™ Rating: {{ rating_average }} (with {{ num_users }} MoveeBuffs™ reporting in) </p>
+
 <h2>Rate this movie</h2>
 <form action="/rate" method="POST">
   <p>
@@ -20,5 +22,5 @@
   {{ movie.overview }}
 </p>
 
-<img src="{{ movie.poster_path }}">
+<img src="{{ movie.poster_path }}" style="max-height: 500px; max-width: 500px;" />
 {% endblock %}
