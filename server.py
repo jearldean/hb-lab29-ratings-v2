@@ -97,6 +97,11 @@ def all_movies():
     """View all movies."""
     movies = crud.get_movies()
 
+    for movie_instance in movies:
+        moviebuffs_rating = crud.get_movie_rating(movie_instance)
+        movie_instance.average_rating = moviebuffs_rating[0]
+        movie_instance.rating_count = moviebuffs_rating[1]
+
     return render_template('all_movies.html', movies=movies)
 
 

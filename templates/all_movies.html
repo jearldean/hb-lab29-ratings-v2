@@ -2,12 +2,15 @@
 {% block title %}All Movies{% endblock %}
 
 {% block body %}
+
+<h1>MoveeBuffs™ MoveeList</h1>
 {% for movie in movies %}
     <ul>
         <li>
             <a href="/movies/{{ movie.movie_id }}">
               {{ movie.title }}
             </a> 
+            ({{ movie.average_rating }} with {{ movie.rating_count }} MoveeBuffs™ reporting in!)
         </li>
     </ul>
 
